@@ -78,6 +78,7 @@ type Info struct {
 	Line     int
 	Filename string
 	Message  string
+	Category string
 	//format   string
 }
 
@@ -104,6 +105,7 @@ func (r *Info) Output(format string) string {
 		r.Line,             // %[5] // %{line}
 		r.logLevelString(), // %[6] // %{level}
 		r.Message,          // %[7] // %{message}
+		r.Category,         // %[8] // %{category}
 	)
 	// Ignore printf errors if len(args) > len(verbs)
 	if i := strings.LastIndex(msg, "%!(EXTRA"); i != -1 {
@@ -250,6 +252,7 @@ func initFormatPlaceholders() {
 		"%{level}":    "%[6]s",
 		"%{lvl}":      "%.3[6]s",
 		"%{message}":  "%[7]s",
+		"%{category}": "%[8]s",
 	}
 }
 
@@ -285,11 +288,11 @@ func New(args ...interface{}) (*Logger, error) {
 
 // The log commnand is the function available to user to log message, lvl specifies
 // the degree of the messagethe user wants to log, message is the info user wants to log
-func (l *Logger) Log(lvl LogLevel, message string) {
-	l.log_internal(lvl, message, 2)
+func (l *Logger) Log(lvl LogLevel, category, message string) {
+	l.log_internal(lvl, category, message, 2)
 }
 
-func (l *Logger) log_internal(lvl LogLevel, message string, pos int) {
+func (l *Logger) log_internal(lvl LogLevel, category, message string, pos int) {
 	//var formatString string = "#%d %s [%s] %s:%d ▶ %.3s %s"
 	_, filename, line, _ := runtime.Caller(pos)
 	filename = path.Base(filename)
@@ -301,159 +304,161 @@ func (l *Logger) log_internal(lvl LogLevel, message string, pos int) {
 		Message:  message,
 		Filename: filename,
 		Line:     line,
+		Category: category,
 		//format:   formatString,
 	}
 	l.worker.Log(lvl, 2, info)
 }
 
 // Fatal is just like func l.Critical logger except that it is followed by exit to program
-func (l *Logger) Fatal(message string) {
-	l.log_internal(CriticalLevel, message, 2)
+func (l *Logger) Fatal(category, message string) {
+	l.log_internal(CriticalLevel, category, message, 2)
 	os.Exit(1)
 }
 
 // FatalF is just like func l.CriticalF logger except that it is followed by exit to program
-func (l *Logger) FatalF(format string, a ...interface{}) {
-	l.log_internal(CriticalLevel, fmt.Sprintf(format, a...), 2)
+func (l *Logger) FatalF(category, format string, a ...interface{}) {
+	l.log_internal(CriticalLevel, category, fmt.Sprintf(format, a...), 2)
 	os.Exit(1)
 }
 
 // FatalF is just like func l.CriticalF logger except that it is followed by exit to program
-func (l *Logger) Fatalf(format string, a ...interface{}) {
-	l.log_internal(CriticalLevel, fmt.Sprintf(format, a...), 2)
+func (l *Logger) Fatalf(category, format string, a ...interface{}) {
+	l.log_internal(CriticalLevel, category, fmt.Sprintf(format, a...), 2)
 	os.Exit(1)
 }
 
 // Panic is just like func l.Critical except that it is followed by a call to panic
-func (l *Logger) Panic(message string) {
-	l.log_internal(CriticalLevel, message, 2)
+func (l *Logger) Panic(category, message string) {
+	l.log_internal(CriticalLevel, category, message, 2)
 	panic(message)
 }
 
 // PanicF is just like func l.CriticalF except that it is followed by a call to panic
-func (l *Logger) PanicF(format string, a ...interface{}) {
-	l.log_internal(CriticalLevel, fmt.Sprintf(format, a...), 2)
+func (l *Logger) PanicF(category, format string, a ...interface{}) {
+	l.log_internal(CriticalLevel, category, fmt.Sprintf(format, a...), 2)
 	panic(fmt.Sprintf(format, a...))
 }
 
 // PanicF is just like func l.CriticalF except that it is followed by a call to panic
-func (l *Logger) Panicf(format string, a ...interface{}) {
-	l.log_internal(CriticalLevel, fmt.Sprintf(format, a...), 2)
+func (l *Logger) Panicf(category, format string, a ...interface{}) {
+	l.log_internal(CriticalLevel, category, fmt.Sprintf(format, a...), 2)
 	panic(fmt.Sprintf(format, a...))
 }
 
 // Critical logs a message at a Critical Level
-func (l *Logger) Critical(message string) {
-	l.log_internal(CriticalLevel, message, 2)
+func (l *Logger) Critical(category, message string) {
+	l.log_internal(CriticalLevel, category, message, 2)
 }
 
 // CriticalF logs a message at Critical level using the same syntax and options as fmt.Printf
-func (l *Logger) CriticalF(format string, a ...interface{}) {
-	l.log_internal(CriticalLevel, fmt.Sprintf(format, a...), 2)
+func (l *Logger) CriticalF(category, format string, a ...interface{}) {
+	l.log_internal(CriticalLevel, category, fmt.Sprintf(format, a...), 2)
 }
 
 // CriticalF logs a message at Critical level using the same syntax and options as fmt.Printf
-func (l *Logger) Criticalf(format string, a ...interface{}) {
-	l.log_internal(CriticalLevel, fmt.Sprintf(format, a...), 2)
+func (l *Logger) Criticalf(category, format string, a ...interface{}) {
+	l.log_internal(CriticalLevel, category, fmt.Sprintf(format, a...), 2)
 }
 
 // Error logs a message at Error level
-func (l *Logger) Error(message string) {
-	l.log_internal(ErrorLevel, message, 2)
+func (l *Logger) Error(category, message string) {
+	l.log_internal(ErrorLevel, category, message, 2)
 }
 
 // ErrorF logs a message at Error level using the same syntax and options as fmt.Printf
-func (l *Logger) ErrorF(format string, a ...interface{}) {
-	l.log_internal(ErrorLevel, fmt.Sprintf(format, a...), 2)
+func (l *Logger) ErrorF(category, format string, a ...interface{}) {
+	l.log_internal(ErrorLevel, category, fmt.Sprintf(format, a...), 2)
 }
 
 // ErrorF logs a message at Error level using the same syntax and options as fmt.Printf
-func (l *Logger) Errorf(format string, a ...interface{}) {
-	l.log_internal(ErrorLevel, fmt.Sprintf(format, a...), 2)
+func (l *Logger) Errorf(category, format string, a ...interface{}) {
+	l.log_internal(ErrorLevel, category, fmt.Sprintf(format, a...), 2)
 }
 
 // Warning logs a message at Warning level
-func (l *Logger) Warning(message string) {
-	l.log_internal(WarningLevel, message, 2)
+func (l *Logger) Warning(category, message string) {
+	l.log_internal(WarningLevel, category, message, 2)
 }
 
 // WarningF logs a message at Warning level using the same syntax and options as fmt.Printf
-func (l *Logger) WarningF(format string, a ...interface{}) {
-	l.log_internal(WarningLevel, fmt.Sprintf(format, a...), 2)
+func (l *Logger) WarningF(category, format string, a ...interface{}) {
+	l.log_internal(WarningLevel, category, fmt.Sprintf(format, a...), 2)
 }
 
 // WarningF logs a message at Warning level using the same syntax and options as fmt.Printf
-func (l *Logger) Warningf(format string, a ...interface{}) {
-	l.log_internal(WarningLevel, fmt.Sprintf(format, a...), 2)
+func (l *Logger) Warningf(category, format string, a ...interface{}) {
+	l.log_internal(WarningLevel, category, fmt.Sprintf(format, a...), 2)
 }
 
 // Notice logs a message at Notice level
-func (l *Logger) Notice(message string) {
-	l.log_internal(NoticeLevel, message, 2)
+func (l *Logger) Notice(category, message string) {
+	l.log_internal(NoticeLevel, category, message, 2)
 }
 
 // NoticeF logs a message at Notice level using the same syntax and options as fmt.Printf
-func (l *Logger) NoticeF(format string, a ...interface{}) {
-	l.log_internal(NoticeLevel, fmt.Sprintf(format, a...), 2)
+func (l *Logger) NoticeF(category, format string, a ...interface{}) {
+	l.log_internal(NoticeLevel, category, fmt.Sprintf(format, a...), 2)
 }
 
 // NoticeF logs a message at Notice level using the same syntax and options as fmt.Printf
-func (l *Logger) Noticef(format string, a ...interface{}) {
-	l.log_internal(NoticeLevel, fmt.Sprintf(format, a...), 2)
+func (l *Logger) Noticef(category, format string, a ...interface{}) {
+	l.log_internal(NoticeLevel, category, fmt.Sprintf(format, a...), 2)
 }
 
 // Info logs a message at Info level
-func (l *Logger) Info(message string) {
-	l.log_internal(InfoLevel, message, 2)
+func (l *Logger) Info(category, message string) {
+	l.log_internal(InfoLevel, category, message, 2)
 }
 
 // InfoF logs a message at Info level using the same syntax and options as fmt.Printf
-func (l *Logger) InfoF(format string, a ...interface{}) {
-	l.log_internal(InfoLevel, fmt.Sprintf(format, a...), 2)
+func (l *Logger) InfoF(category, format string, a ...interface{}) {
+	l.log_internal(InfoLevel, category, fmt.Sprintf(format, a...), 2)
 }
 
 // InfoF logs a message at Info level using the same syntax and options as fmt.Printf
-func (l *Logger) Infof(format string, a ...interface{}) {
-	l.log_internal(InfoLevel, fmt.Sprintf(format, a...), 2)
+func (l *Logger) Infof(category, format string, a ...interface{}) {
+	l.log_internal(InfoLevel, category, fmt.Sprintf(format, a...), 2)
 }
 
 // Debug logs a message at Debug level
-func (l *Logger) Debug(message string) {
-	l.log_internal(DebugLevel, message, 2)
+func (l *Logger) Debug(category, message string) {
+	l.log_internal(DebugLevel, category, message, 2)
 }
 
 // DebugF logs a message at Debug level using the same syntax and options as fmt.Printf
-func (l *Logger) DebugF(format string, a ...interface{}) {
-	l.log_internal(DebugLevel, fmt.Sprintf(format, a...), 2)
+func (l *Logger) DebugF(category, format string, a ...interface{}) {
+	l.log_internal(DebugLevel, category, fmt.Sprintf(format, a...), 2)
 }
 
 // DebugF logs a message at Debug level using the same syntax and options as fmt.Printf
-func (l *Logger) Debugf(format string, a ...interface{}) {
-	l.log_internal(DebugLevel, fmt.Sprintf(format, a...), 2)
+func (l *Logger) Debugf(category, format string, a ...interface{}) {
+	l.log_internal(DebugLevel, category, fmt.Sprintf(format, a...), 2)
 }
 
 // Prints this goroutine's execution stack as an error with an optional message at the begining
-func (l *Logger) StackAsError(message string) {
+func (l *Logger) StackAsError(category, message string) {
 	if message == "" {
 		message = "Stack info"
 	}
 	message += "\n"
-	l.log_internal(ErrorLevel, message+Stack(), 2)
+	l.log_internal(ErrorLevel, category, message+Stack(), 2)
 }
 
 // Prints this goroutine's execution stack as critical with an optional message at the begining
-func (l *Logger) StackAsCritical(message string) {
+func (l *Logger) StackAsCritical(category, message string) {
 	if message == "" {
 		message = "Stack info"
 	}
 	message += "\n"
-	l.log_internal(CriticalLevel, message+Stack(), 2)
+	l.log_internal(CriticalLevel, category, message+Stack(), 2)
 }
 
 // Returns a string with the execution stack for this goroutine
 func Stack() string {
 	buf := make([]byte, 1000000)
 	runtime.Stack(buf, false)
+	buf = bytes.Trim(buf, "\x00")
 	return string(buf)
 }
 

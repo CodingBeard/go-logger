@@ -19,30 +19,37 @@ func BenchmarkLoggerLog(b *testing.B) {
 
 	var tests = []struct {
 		level   LogLevel
+		category string
 		message string
 	}{
 		{
 			CriticalLevel,
+			"root",
 			"Critical Logging",
 		},
 		{
 			ErrorLevel,
+			"sdk",
 			"Error logging",
 		},
 		{
 			WarningLevel,
+			"viewModel",
 			"Warning logging",
 		},
 		{
 			NoticeLevel,
+			"controller",
 			"Notice Logging",
 		},
 		{
 			InfoLevel,
+			"api client",
 			"Info Logging",
 		},
 		{
 			DebugLevel,
+			"loader",
 			"Debug logging",
 		},
 	}
@@ -50,7 +57,7 @@ func BenchmarkLoggerLog(b *testing.B) {
 	b.StartTimer()
 	for _, test := range tests {
 		for n := 0; n <= b.N; n++ {
-			log.Log(test.level, test.message)
+			log.Log(test.level, test.category, test.message)
 		}
 	}
 }
@@ -151,7 +158,7 @@ func TestLogger_SetFormat(t *testing.T) {
 	}
 
 	log.SetLogLevel(DebugLevel)
-	log.Debug("Test")
+	log.Debug("category", "Test")
 	log.SetLogLevel(InfoLevel)
 
 	want := time.Now().Format("2006-01-02 15:04:05")
@@ -172,7 +179,7 @@ func TestLogger_SetFormat(t *testing.T) {
 			"%{} [%{message}]" // empty verb before message in sq brackets
 	buf.Reset()
 	log.SetFormat(format)
-	log.Error("This is Error!")
+	log.Error("category","This is Error!")
 	now := time.Now()
 	want = fmt.Sprintf(
 		"text123 2 "+
@@ -212,7 +219,7 @@ func TestSetDefaultFormat(t *testing.T) {
 	if err != nil || log == nil {
 		panic(err)
 	}
-	log.Criticalf("Test %d", 123)
+	log.Criticalf("category","Test %d", 123)
 	want := "pkgname CRI Test 123\n"
 	have := buf.String()
 	if want != have {
@@ -262,12 +269,12 @@ func TestLogLevel(t *testing.T) {
 	for i, test := range tests {
 		log.SetLogLevel(test.level)
 
-		log.Critical("Log Critical")
-		log.Error("Log Error")
-		log.Warning("Log Warning")
-		log.Notice("Log Notice")
-		log.Info("Log Info")
-		log.Debug("Log Debug")
+		log.Critical("category","Log Critical")
+		log.Error("category","Log Error")
+		log.Warning("category","Log Warning")
+		log.Notice("category","Log Notice")
+		log.Info("category","Log Info")
+		log.Debug("category","Log Debug")
 
 		// Count output lines from logger
 		count := strings.Count(buf.String(), "\n")
