@@ -87,6 +87,7 @@ type Info struct {
 type Logger struct {
 	Module string
 	worker *Worker
+	posOverride int
 }
 
 // init pkg
@@ -206,10 +207,10 @@ func (l *Logger) SetLogLevel(level LogLevel) {
 }
 
 // Function of Worker class to log a string based on level
-func (w *Worker) Log(level LogLevel, calldepth int, info *Info) error {
+func (w *Worker) Log(level LogLevel, calldepth int, info *Info) (int, error) {
 
 	if w.level < level {
-		return nil
+		return 0, nil
 	}
 
 	if w.Color != 0 {
@@ -217,9 +218,12 @@ func (w *Worker) Log(level LogLevel, calldepth int, info *Info) error {
 		buf.Write([]byte(colors[level]))
 		buf.Write([]byte(info.Output(w.format)))
 		buf.Write([]byte("\033[0m"))
-		return w.Minion.Output(calldepth+1, buf.String())
+		return buf.Len(), w.Minion.Output(calldepth+1, buf.String())
 	} else {
-		return w.Minion.Output(calldepth+1, info.Output(w.format))
+		output := info.Output(w.format)
+		buf := &bytes.Buffer{}
+		buf.Write([]byte(output))
+		return buf.Len(), w.Minion.Output(calldepth+1, output)
 	}
 }
 
@@ -292,8 +296,16 @@ func (l *Logger) Log(lvl LogLevel, category, message string) {
 	l.log_internal(lvl, category, message, 2)
 }
 
-func (l *Logger) log_internal(lvl LogLevel, category, message string, pos int) {
+func (l *Logger) SetPosOverride(pos int) {
+	l.posOverride = pos
+}
+
+func (l *Logger) log_internal(lvl LogLevel, category, message string, pos int) (int, error) {
 	//var formatString string = "#%d %s [%s] %s:%d ▶ %.3s %s"
+	if l.posOverride != -1 {
+		pos = l.posOverride
+		l.posOverride = -1
+	}
 	_, filename, line, _ := runtime.Caller(pos)
 	filename = path.Base(filename)
 	info := &Info{
@@ -307,7 +319,7 @@ func (l *Logger) log_internal(lvl LogLevel, category, message string, pos int) {
 		Category: category,
 		//format:   formatString,
 	}
-	l.worker.Log(lvl, 2, info)
+	return l.worker.Log(lvl, 2, info)
 }
 
 // Fatal is just like func l.Critical logger except that it is followed by exit to program
@@ -442,7 +454,12 @@ func (l *Logger) StackAsError(category, message string) {
 		message = "Stack info"
 	}
 	message += "\n"
-	l.log_internal(ErrorLevel, category, message+Stack(), 2)
+	stack := Stack()
+	stackParts := strings.Split(stack, "\n")
+	newStackParts := []string{stackParts[0]}
+	newStackParts = append(newStackParts, stackParts[3:]...)
+	stack = strings.Join(newStackParts, "\n")
+	l.log_internal(ErrorLevel, category, message+stack, 2)
 }
 
 // Prints this goroutine's execution stack as critical with an optional message at the begining
@@ -451,7 +468,12 @@ func (l *Logger) StackAsCritical(category, message string) {
 		message = "Stack info"
 	}
 	message += "\n"
-	l.log_internal(CriticalLevel, category, message+Stack(), 2)
+	stack := Stack()
+	stackParts := strings.Split(stack, "\n")
+	newStackParts := []string{stackParts[0]}
+	newStackParts = append(newStackParts, stackParts[3:]...)
+	stack = strings.Join(newStackParts, "\n")
+	l.log_internal(CriticalLevel, category, message+stack, 2)
 }
 
 // Returns a string with the execution stack for this goroutine
@@ -459,7 +481,12 @@ func Stack() string {
 	buf := make([]byte, 1000000)
 	runtime.Stack(buf, false)
 	buf = bytes.Trim(buf, "\x00")
-	return string(buf)
+	stack := string(buf)
+	stackParts := strings.Split(stack, "\n")
+	newStackParts := []string{stackParts[0]}
+	newStackParts = append(newStackParts, stackParts[3:]...)
+	stack = strings.Join(newStackParts, "\n")
+	return stack
 }
 
 // Returns the loglevel as string
@@ -473,4 +500,8 @@ func (info *Info) logLevelString() string {
 		"DEBUG",
 	}
 	return logLevels[info.Level-1]
+}
+
+func (l *Logger) Write(bytes []byte) (int, error) {
+	return l.log_internal(InfoLevel, "defualt_logger", string(bytes[20:]), 4)
 }
