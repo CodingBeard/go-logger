@@ -503,5 +503,5 @@ func (info *Info) logLevelString() string {
 }
 
 func (l *Logger) Write(bytes []byte) (int, error) {
-	return l.log_internal(InfoLevel, "defualt_logger", string(bytes[20:]), 4)
+	return l.log_internal(InfoLevel, "default_logger", string(bytes[20:]), 4)
 }
