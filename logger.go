@@ -11,6 +11,7 @@ import (
 	"path"
 	"runtime"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -65,6 +66,7 @@ type Worker struct {
 	format     string
 	timeFormat string
 	level      LogLevel
+	lock       *sync.Mutex
 }
 
 // Info class, Contains all the info on what has to logged, time is the current time, Module is the specific module
@@ -88,6 +90,7 @@ type Logger struct {
 	Module string
 	worker *Worker
 	posOverride int
+	WriteLock *sync.Mutex
 }
 
 // init pkg
@@ -182,8 +185,8 @@ func ph2verb(ph string) (verb string, arg string) {
 
 // Returns an instance of worker class, prefix is the string attached to every log,
 // flag determine the log params, color parameters verifies whether we need colored outputs or not
-func NewWorker(prefix string, flag int, color int, out io.Writer) *Worker {
-	return &Worker{Minion: log.New(out, prefix, flag), Color: color, format: defFmt, timeFormat: defTimeFmt}
+func NewWorker(prefix string, flag int, color int, out io.Writer, lock *sync.Mutex) *Worker {
+	return &Worker{Minion: log.New(out, prefix, flag), Color: color, format: defFmt, timeFormat: defTimeFmt, lock: lock}
 }
 
 func SetDefaultFormat(format string) {
@@ -212,6 +215,9 @@ func (w *Worker) Log(level LogLevel, calldepth int, info *Info) (int, error) {
 	if w.level < level {
 		return 0, nil
 	}
+
+	w.lock.Lock()
+	defer w.lock.Unlock()
 
 	if w.Color != 0 {
 		buf := &bytes.Buffer{}
@@ -285,9 +291,33 @@ func New(args ...interface{}) (*Logger, error) {
 			panic("logger: Unknown argument")
 		}
 	}
-	newWorker := NewWorker("", 0, color, out)
+	lock := &sync.Mutex{}
+	newWorker := NewWorker("", 0, color, out, lock)
 	newWorker.SetLogLevel(level)
-	return &Logger{Module: module, worker: newWorker}, nil
+	return &Logger{Module: module, worker: newWorker, WriteLock: lock}, nil
+}
+
+func (l *Logger) Update(args ...interface{}) {
+	var color int = 1
+	var out io.Writer = os.Stderr
+	var level LogLevel = InfoLevel
+
+	for _, arg := range args {
+		switch t := arg.(type) {
+		case int:
+			color = t
+		case io.Writer:
+			out = t
+		case LogLevel:
+			level = t
+		default:
+			panic("logger: Unknown argument")
+		}
+	}
+	lock := &sync.Mutex{}
+	newWorker := NewWorker("", 0, color, out, lock)
+	newWorker.SetLogLevel(level)
+	l.worker = newWorker
 }
 
 // The log commnand is the function available to user to log message, lvl specifies
