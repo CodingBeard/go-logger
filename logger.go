@@ -535,3 +535,7 @@ func (info *Info) logLevelString() string {
 func (l *Logger) Write(bytes []byte) (int, error) {
 	return l.log_internal(InfoLevel, "default_logger", string(bytes[20:]), 4)
 }
+
+func (l *Logger) Print(v ...interface{}) {
+	_, _ = l.log_internal(InfoLevel, "default_logger", fmt.Sprint(v...), 4)
+}
