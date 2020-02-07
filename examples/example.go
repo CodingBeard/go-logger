@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/CodingBeard/go-logger"
+	"github.com/codingbeard/go-logger"
 	"os"
 )
 
