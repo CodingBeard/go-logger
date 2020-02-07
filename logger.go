@@ -326,6 +326,10 @@ func (l *Logger) Log(lvl LogLevel, category, message string) {
 	l.log_internal(lvl, category, message, 2)
 }
 
+func (l *Logger) GetPosOverride() int {
+	return l.posOverride
+}
+
 func (l *Logger) SetPosOverride(pos int) {
 	l.posOverride = pos
 }
@@ -533,7 +537,7 @@ func (info *Info) logLevelString() string {
 }
 
 func (l *Logger) Write(bytes []byte) (int, error) {
-	return l.log_internal(InfoLevel, "default_logger", string(bytes[20:]), 4)
+	return l.log_internal(InfoLevel, "default_logger", string(bytes), 4)
 }
 
 func (l *Logger) Print(v ...interface{}) {
