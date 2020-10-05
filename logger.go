@@ -87,10 +87,10 @@ type Info struct {
 // Logger class that is an interface to user to log messages, Module is the module for which we are testing
 // worker is variable of Worker class that is used in bottom layers to log the message
 type Logger struct {
-	Module string
-	worker *Worker
+	Module      string
+	worker      *Worker
 	posOverride int
-	WriteLock *sync.Mutex
+	WriteLock   *sync.Mutex
 }
 
 // init pkg
@@ -537,7 +537,8 @@ func (info *Info) logLevelString() string {
 }
 
 func (l *Logger) Write(bytes []byte) (int, error) {
-	return l.log_internal(InfoLevel, "default_logger", string(bytes), 4)
+	_, err := l.log_internal(InfoLevel, "default_logger", string(bytes), 4)
+	return len(bytes), err
 }
 
 func (l *Logger) Print(v ...interface{}) {
